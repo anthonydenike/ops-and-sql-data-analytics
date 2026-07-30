@@ -1,0 +1,57 @@
+ -- Find all customers whose total spend (per invoice) is above the average spend across all invoices. 
+WITH spend_stats AS (
+    SELECT AVG(i.Total) AS avg_spend
+    FROM Invoice i
+)
+SELECT FirstName, LastName, Total
+FROM Invoice i
+JOIN Customer c ON c.CustomerId = i.CustomerId
+JOIN spend_stats ON 1=1
+WHERE i.Total > spend_stats.avg_spend
+ORDER BY Total DESC;
+
+-- Using a window function, show each invoice's date and total along with a running total of revenue as invoices accumulate over time.
+SELECT
+	i.InvoiceDate,
+	i.Total,
+	SUM(i.Total) OVER (ORDER BY InvoiceDate ASC) AS Total_running_revenue
+FROM Invoice i;
+
+-- Show each invoice's date, total, and the total of the invoice immediately before it (by date).
+SELECT
+	i.InvoiceDate,
+	i.Total,
+	LAG(i.Total) OVER (ORDER BY InvoiceDate ASC) AS Previous_invoice_total
+FROM Invoice i;
+
+-- Show each invoice's date, total, and the total of the following invoice.
+SELECT 
+	i.InvoiceDate, i.Total,
+	LEAD (i.Total) OVER(ORDER BY i.InvoiceDate ASC) AS Subsequent_total
+FROM Invoice i;
+
+-- Rank customers by their total lifetime spend, highest to lowest, using RANK().
+SELECT
+	c.FirstName || ' ' || c.LastName AS Customer_name, 
+	SUM(i.Total) AS Lifetime_spend, 
+	RANK() OVER (ORDER BY SUM(i.Total) DESC) AS Customer_spend_rank
+FROM Customer c
+JOIN Invoice i ON c.CustomerId = i.CustomerId
+GROUP BY c.CustomerId 
+ORDER BY Customer_spend_rank;
+
+-- Give every invoice a simple sequential number based on date order.
+SELECT 
+	ROW_NUMBER() OVER(ORDER BY InvoiceDate ASC) AS Invoice_row,
+	i.InvoiceId,i.InvoiceDate
+FROM Invoice i;
+
+-- Split customers into 4 buckets (quartiles) based on their lifetime spend — highest spenders in bucket 1.
+SELECT
+	c.FirstName || ' ' || c.LastName AS Customer_name, 
+	SUM(i.Total) AS Lifetime_spend, 
+	NTILE(4) OVER (ORDER BY SUM(i.Total) DESC) AS Customer_spend_quartile
+FROM Customer c
+JOIN Invoice i ON c.CustomerId = i.CustomerId
+GROUP BY c.CustomerId 
+ORDER BY Customer_spend_quartile;

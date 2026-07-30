@@ -1,4 +1,4 @@
--- Which countries have the highest customer concentration?
+ -- Which countries have the highest customer concentration?
 SELECT Country, COUNT(*) AS Country_Count
 FROM Customer
 GROUP BY Country
